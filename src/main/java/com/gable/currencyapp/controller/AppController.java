@@ -7,6 +7,7 @@ import com.gable.currencyapp.service.CoinService;
 import com.gable.currencyapp.service.ValidationService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -21,6 +22,7 @@ public class AppController {
   private final ValidationService validationService;
   private final CoinService coinService;
 
+  @Cacheable(value = "coins", key="#requestDto.currency")
   @GetMapping("/get_coins")
   public ResponseEntity<List<ResponseCoinDto>> getCoinsByCurrency(
       @RequestBody RequestCoinDto requestDto
