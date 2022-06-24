@@ -31,4 +31,7 @@ public class CoinDetailsDto {
   @JsonProperty("tickers")
   private List<TickerDto> tickers;
 
+  @JsonProperty("market_cap_rank")
+  private long marketCapRank;
+
 }

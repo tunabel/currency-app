@@ -18,6 +18,9 @@ public class ResponseCoinDto {
   @JsonIgnore
   private boolean isDataFresh = false;
 
+  @JsonIgnore
+  private long marketCapRank;
+
   private String image;
 
   private String symbol;
@@ -36,5 +39,4 @@ public class ResponseCoinDto {
 
   @JsonProperty("trade_url")
   private String tradeUrl;
-
 }
