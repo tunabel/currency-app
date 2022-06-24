@@ -26,7 +26,7 @@ public class CurrencyAppApplication implements CommandLineRunner {
 	@Override
 	public void run(String... args) {
 		log.info("Starting app");
-		vsCurrencyService.retrieveCurrencies();
-		coinService.retrieveCoinList();
+//		vsCurrencyService.retrieveCurrencies();
+//		coinService.retrieveCoinList();
 	}
 }

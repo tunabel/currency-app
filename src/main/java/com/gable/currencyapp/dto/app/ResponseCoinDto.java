@@ -1,6 +1,9 @@
 package com.gable.currencyapp.dto.app;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.gable.currencyapp.util.TwoDecimalSerializer;
+import java.math.BigDecimal;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -9,13 +12,21 @@ import lombok.Setter;
 public class ResponseCoinDto {
 
   private String image;
+
   private String symbol;
+
   private String name;
+
   @JsonProperty("price_change_percentage_24h")
-  private String priceChangePercent;
+  @JsonSerialize(using = TwoDecimalSerializer.class)
+  private BigDecimal priceChangePercent;
+
   @JsonProperty("current_price")
-  private String currentPrice;
+  @JsonSerialize(using = TwoDecimalSerializer.class)
+  private BigDecimal currentPrice;
+
   private String description;
+
   @JsonProperty("trade_url")
   private String tradeUrl;
 
