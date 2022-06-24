@@ -25,25 +25,27 @@ public class Coin {
   @Column(name = "coin_symbol")
   private String symbol;
 
-  @Column(name = "coin_image")
+  @Column(name = "coin_image", columnDefinition = "TEXT")
   private String image;
 
   @Column(name = "coin_name")
   private String name;
 
   @Column(name = "price_change_percentage_24h")
-  private BigDecimal priceChangePercentage;
+  private BigDecimal priceChangePercent;
 
   @Column(name = "current_price")
   private BigDecimal currentPrice;
 
-  @Column(name = "coin_description")
+  @Column(name = "coin_description", columnDefinition = "TEXT")
   private String description;
 
   @Column(name = "trade_url")
   private String tradeUrl;
 
-  @Column(name = "last_updated_time")
+  @Column(name = "last_updated_time", columnDefinition = "TIMESTAMP WITH TIME ZONE")
   private Instant lastUpdatedTime;
 
+  @Column(name = "market_cap_rank")
+  private long marketCapRank;
 }

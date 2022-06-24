@@ -1,5 +1,6 @@
 package com.gable.currencyapp.dto.app;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.gable.currencyapp.util.TwoDecimalSerializer;
@@ -10,6 +11,12 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ResponseCoinDto {
+
+  @JsonIgnore
+  private String id;
+
+  @JsonIgnore
+  private boolean isDataFresh = false;
 
   private String image;
 

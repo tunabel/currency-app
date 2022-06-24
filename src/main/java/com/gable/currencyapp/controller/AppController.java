@@ -22,7 +22,7 @@ public class AppController {
   private final ValidationService validationService;
   private final CoinService coinService;
 
-  @Cacheable(value = "coins", key="#requestDto.currency")
+  @Cacheable(value = "coins")
   @GetMapping("/get_coins")
   public ResponseEntity<List<ResponseCoinDto>> getCoinsByCurrency(
       @RequestBody RequestCoinDto requestDto
