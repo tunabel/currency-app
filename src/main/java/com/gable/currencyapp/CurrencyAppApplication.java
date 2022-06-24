@@ -1,5 +1,6 @@
 package com.gable.currencyapp;
 
+import com.gable.currencyapp.service.CoinService;
 import com.gable.currencyapp.service.VsCurrencyService;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.boot.CommandLineRunner;
@@ -11,9 +12,11 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class CurrencyAppApplication implements CommandLineRunner {
 
 	private final VsCurrencyService vsCurrencyService;
+	private final CoinService coinService;
 
-	public CurrencyAppApplication(VsCurrencyService vsCurrencyService) {
+	public CurrencyAppApplication(VsCurrencyService vsCurrencyService, CoinService coinService) {
 		this.vsCurrencyService = vsCurrencyService;
+		this.coinService = coinService;
 	}
 
 	public static void main(String[] args) {
@@ -24,5 +27,6 @@ public class CurrencyAppApplication implements CommandLineRunner {
 	public void run(String... args) {
 		log.info("Starting app");
 		vsCurrencyService.retrieveCurrencies();
+		coinService.retrieveCoinList();
 	}
 }
