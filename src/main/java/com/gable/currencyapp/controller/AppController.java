@@ -28,14 +28,16 @@ public class AppController {
   public ResponseEntity<List<ResponseCoinDto>> getCoinsByCurrency(
       @RequestBody RequestCoinDto requestDto
   ) throws InvalidRequestException {
+
     validationService.isRequestDtoValid(requestDto);
 
 //      prioritize crawling data for queried currency
     VsCurrency vsCurrency = vsCurrencyService.updateVsCurrencyPriority(requestDto.getCurrency());
 
+    //page starts from 0, whilst coinGecko server accepts 1 as min value for page
     List<ResponseCoinDto> coinResponse = coinService.getCoinResponseDtosByCurrency(
         vsCurrency,
-        requestDto.getPage(),
+        requestDto.getPage() + 1,
         requestDto.getPerPage()
     );
     return ResponseEntity.ok(coinResponse);

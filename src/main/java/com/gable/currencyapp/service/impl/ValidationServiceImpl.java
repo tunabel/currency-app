@@ -6,11 +6,13 @@ import com.gable.currencyapp.repository.VsCurrencyRepository;
 import com.gable.currencyapp.service.ValidationService;
 import java.util.Locale;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
 import javax.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -28,19 +30,23 @@ public class ValidationServiceImpl implements ValidationService {
       throws InvalidRequestException {
 
     Set<ConstraintViolation<RequestCoinDto>> constraints = validator.validate(requestCoinDto);
-
-    if (!constraints.isEmpty()) {
-      throw new InvalidRequestException(
-          constraints.stream()
-              .reduce("",
-                  (error, constraint) -> error + constraint.getPropertyPath() + " "
-                      + constraint.getMessage() + "; ",
-                  String::concat)
-      );
-    }
+    Set<Pair<String, String>> errorMsgs = constraints.stream()
+        .map(constraint ->
+            Pair.of(constraint.getPropertyPath().toString(), constraint.getMessage()))
+        .collect(Collectors.toSet());
 
     if (!vsCurrencyRepository.existsById(requestCoinDto.getCurrency().toLowerCase(Locale.ROOT))) {
-      throw new InvalidRequestException("Currency doesn't exist");
+      errorMsgs.add(Pair.of("currency", "value doesn't exist"));
+    }
+
+    if (!errorMsgs.isEmpty()) {
+      throw new InvalidRequestException(
+          errorMsgs.stream()
+              .reduce("",
+                  (error, constraint) -> error + constraint.getFirst() + " "
+                      + constraint.getSecond() + "; ",
+                  String::concat).trim()
+      );
     }
   }
 }
