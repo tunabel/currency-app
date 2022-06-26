@@ -32,6 +32,6 @@ public class CoinDetailsDto {
   private List<TickerDto> tickers;
 
   @JsonProperty("market_cap_rank")
-  private long marketCapRank;
+  private int marketCapRank;
 
 }

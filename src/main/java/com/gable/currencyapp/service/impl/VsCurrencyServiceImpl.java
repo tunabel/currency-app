@@ -52,7 +52,11 @@ public class VsCurrencyServiceImpl implements VsCurrencyService {
     }
 
     List<VsCurrency> newCurrencies = currencyStringList.stream()
-        .map(VsCurrency::new)
+        .map(currency -> {
+          VsCurrency vsCurrency = new VsCurrency();
+          vsCurrency.setCurrency(currency);
+          return vsCurrency;
+        })
         .collect(Collectors.toList());
 
     vsCurrencyRepository.saveAll(newCurrencies);

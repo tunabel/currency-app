@@ -2,13 +2,18 @@ package com.gable.currencyapp.model;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Index;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.Cascade;
+import org.hibernate.annotations.CascadeType;
 
 @Entity
 @Table(name = "coin", indexes = {
@@ -34,9 +39,6 @@ public class Coin {
   @Column(name = "price_change_percentage_24h")
   private BigDecimal priceChangePercent;
 
-  @Column(name = "current_price")
-  private BigDecimal currentPrice;
-
   @Column(name = "coin_description", columnDefinition = "TEXT")
   private String description;
 
@@ -47,5 +49,9 @@ public class Coin {
   private Instant lastUpdatedTime;
 
   @Column(name = "market_cap_rank")
-  private long marketCapRank;
+  private int marketCapRank;
+
+  @Cascade(value = CascadeType.PERSIST)
+  @OneToMany(mappedBy = "coin")
+  Set<Price> prices = new HashSet<>();
 }

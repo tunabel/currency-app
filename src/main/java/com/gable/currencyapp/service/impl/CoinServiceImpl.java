@@ -1,11 +1,17 @@
 package com.gable.currencyapp.service.impl;
 
 import com.gable.currencyapp.dto.app.ResponseCoinDto;
+import com.gable.currencyapp.dto.gecko.CoinByCurrencyDto;
 import com.gable.currencyapp.dto.gecko.CoinDetailsDto;
-import com.gable.currencyapp.dto.gecko.CoinByCurrency;
 import com.gable.currencyapp.dto.gecko.SimpleCoinDto;
 import com.gable.currencyapp.model.Coin;
+import com.gable.currencyapp.model.Price;
+import com.gable.currencyapp.model.PricePK;
+import com.gable.currencyapp.model.VsCurrency;
 import com.gable.currencyapp.repository.CoinRepository;
+import com.gable.currencyapp.repository.PriceRepository;
+import com.gable.currencyapp.repository.VsCurrencyRepository;
+import com.gable.currencyapp.repository.projection.CoinWithPrice;
 import com.gable.currencyapp.service.CoinService;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -28,6 +34,8 @@ import reactor.core.publisher.Mono;
 public class CoinServiceImpl implements CoinService {
 
   private final CoinRepository coinRepository;
+  private final PriceRepository priceRepository;
+  private final VsCurrencyRepository vsCurrencyRepository;
   private final WebClient webClient;
 
   @Value("${currency-app.coin-gecko.path.simple-coin-list}")
@@ -87,33 +95,33 @@ public class CoinServiceImpl implements CoinService {
   public List<ResponseCoinDto> getCoinsByCurrency(String currency, int page, int perPage) {
 
     log.info("Get list of coins by currency {}", currency);
-    CoinByCurrency[] coinList = queryCoinListByCurrencies(currency, page, perPage);
+    CoinByCurrencyDto[] coinList = queryCoinListByCurrencies(currency, page, perPage);
 
     if (coinList == null) {
       log.info("Unable to get coin list by currency {}", currency);
       return new ArrayList<>();
     }
 
-    List<ResponseCoinDto> responseCoinDtos = createResponseCoinDtos(coinList);
+    List<ResponseCoinDto> responseCoinDtos = createResponseCoinDtos(coinList, currency);
 
-    cacheCoinDataIntoDb(responseCoinDtos);
+    cacheCoinDataIntoDb(responseCoinDtos, currency);
 
     return responseCoinDtos;
   }
 
-  public List<ResponseCoinDto> createResponseCoinDtos(CoinByCurrency[] coinList) {
+  public List<ResponseCoinDto> createResponseCoinDtos(CoinByCurrencyDto[] coinList, String currency) {
     List<String> coinIds = Arrays.stream(coinList)
-        .map(CoinByCurrency::getId)
+        .map(CoinByCurrencyDto::getId)
         .collect(Collectors.toList());
 
-    List<Coin> lastHourCoinDataList = coinRepository
-        .findCoinsByIdAndLastUpdatedPeriod(coinIds, lastUpdatedPeriod);
+    List<CoinWithPrice> recentCoinDataPriceList = coinRepository
+        .findCoinDataByIdAndCurrencyAndLastUpdatedPeriod(coinIds, currency, lastUpdatedPeriod);
 
     List<ResponseCoinDto> responseCoinDtos = new ArrayList<>();
 
-    for (CoinByCurrency coinByCurrency : coinList) {
+    for (CoinByCurrencyDto coinByCurrency : coinList) {
       ResponseCoinDto responseCoinDto;
-      Optional<Coin> matchCoinInDbOptional = lastHourCoinDataList
+      Optional<CoinWithPrice> matchCoinInDbOptional = recentCoinDataPriceList
           .stream()
           .filter(coinDb -> coinDb.getId().equals(coinByCurrency.getId()))
           .findFirst();
@@ -127,14 +135,22 @@ public class CoinServiceImpl implements CoinService {
     return responseCoinDtos;
   }
 
-  private ResponseCoinDto createResponseCoinDtoFromDbCoin(Coin coin) {
+  private ResponseCoinDto createResponseCoinDtoFromDbCoin(CoinWithPrice coin) {
     log.info("Map data from database to response for coin {}", coin.getId());
     ResponseCoinDto responseCoinDto = new ResponseCoinDto();
-    BeanUtils.copyProperties(coin, responseCoinDto);
+    responseCoinDto.setId(coin.getId());
+    responseCoinDto.setName(coin.getName());
+    responseCoinDto.setImage(coin.getImage());
+    responseCoinDto.setSymbol(coin.getSymbol());
+    responseCoinDto.setDescription(coin.getDescription());
+    responseCoinDto.setPriceChangePercent(coin.getPriceChangePercent());
+    responseCoinDto.setCurrentPrice(coin.getCurrentPrice());
+    responseCoinDto.setMarketCapRank(coin.getMarketCapRank());
+    responseCoinDto.setTradeUrl(coin.getTradeUrl());
     return responseCoinDto;
   }
 
-  private ResponseCoinDto createResponseCoinDtoFromServer(CoinByCurrency coinItem) {
+  private ResponseCoinDto createResponseCoinDtoFromServer(CoinByCurrencyDto coinItem) {
     log.info("Query data of coin {}", coinItem.getId());
     CoinDetailsDto coinDetailsDto = webClient.get()
         .uri(coinDetailsPath + coinItem.getId())
@@ -165,21 +181,34 @@ public class CoinServiceImpl implements CoinService {
     return responseCoinDto;
   }
 
-  private void cacheCoinDataIntoDb(List<ResponseCoinDto> responseCoinDtos) {
-    List<Coin> coinListToDb = responseCoinDtos.stream()
-        .filter(ResponseCoinDto::isDataFresh)
-        .map(coinDto -> {
-          Coin newCoin = new Coin();
-          BeanUtils.copyProperties(coinDto, newCoin);
-          newCoin.setLastUpdatedTime(Instant.now());
-          return newCoin;
-        })
-        .collect(Collectors.toList());
+  @Transactional
+  void cacheCoinDataIntoDb(List<ResponseCoinDto> responseCoinDtos, String currency) {
+
+    VsCurrency vsCurrency = vsCurrencyRepository.getReferenceById(currency);
+    List<Coin> coinListToDb = new ArrayList<>();
+    for (ResponseCoinDto coinDto : responseCoinDtos) {
+      if (!coinDto.isDataFresh()) {
+        continue;
+      }
+
+      Coin newCoin = new Coin();
+      BeanUtils.copyProperties(coinDto, newCoin);
+      newCoin.setLastUpdatedTime(Instant.now());
+
+      Price price = new Price();
+      price.setPricePK(new PricePK(coinDto.getId(), vsCurrency.getCurrency()));
+      price.setCoin(newCoin);
+      price.setCurrency(vsCurrency);
+      price.setCurrentPrice(coinDto.getCurrentPrice());
+      priceRepository.save(price);
+
+      coinListToDb.add(newCoin);
+    }
     coinRepository.saveAll(coinListToDb);
     log.info("Saved {} coins into db", coinListToDb.size());
   }
 
-  private CoinByCurrency[] queryCoinListByCurrencies(String currency, int page,
+  private CoinByCurrencyDto[] queryCoinListByCurrencies(String currency, int page,
       int perPage) {
     return webClient.get()
         .uri(uriBuilder -> uriBuilder.path(coinListPath)
@@ -190,7 +219,7 @@ public class CoinServiceImpl implements CoinService {
         )
         .exchangeToMono(response -> {
               if (response.statusCode().is2xxSuccessful()) {
-                return response.bodyToMono(CoinByCurrency[].class);
+                return response.bodyToMono(CoinByCurrencyDto[].class);
               } else {
                 log.error("Unable to get data for currency {}. Possibly limit reached", currency);
                 return Mono.empty();

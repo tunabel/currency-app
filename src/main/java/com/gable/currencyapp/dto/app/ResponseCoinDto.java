@@ -19,7 +19,7 @@ public class ResponseCoinDto {
   private boolean isDataFresh = false;
 
   @JsonIgnore
-  private long marketCapRank;
+  private int marketCapRank;
 
   private String image;
 

@@ -1,6 +1,7 @@
 package com.gable.currencyapp.dto.app;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Locale;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
@@ -22,4 +23,7 @@ public class RequestCoinDto {
   @JsonProperty("per_page")
   private int perPage = 10;
 
+  public void setCurrency(String currency) {
+    this.currency = currency.toLowerCase(Locale.ROOT);
+  }
 }

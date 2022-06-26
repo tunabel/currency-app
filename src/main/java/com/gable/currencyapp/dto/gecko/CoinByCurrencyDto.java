@@ -9,7 +9,7 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-public class CoinByCurrency {
+public class CoinByCurrencyDto {
 
   private String id;
 
@@ -26,5 +26,5 @@ public class CoinByCurrency {
   private BigDecimal currentPrice;
 
   @JsonProperty("market_cap_rank")
-  private long marketCapRank;
+  private int marketCapRank;
 }
