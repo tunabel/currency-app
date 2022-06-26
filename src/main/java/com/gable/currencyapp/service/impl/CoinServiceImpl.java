@@ -92,17 +92,17 @@ public class CoinServiceImpl implements CoinService {
   }
 
   @Override
-  public List<ResponseCoinDto> getCoinsByCurrency(String currency, int page, int perPage) {
+  public List<ResponseCoinDto> getCoinResponseDtosByCurrency(VsCurrency currency, int page, int perPage) {
 
     log.info("Get list of coins by currency {}", currency);
-    CoinByCurrencyDto[] coinList = queryCoinListByCurrencies(currency, page, perPage);
+    CoinByCurrencyDto[] coinList = queryCoinListByCurrencies(currency.getCurrency(), page, perPage);
 
     if (coinList == null) {
       log.info("Unable to get coin list by currency {}", currency);
       return new ArrayList<>();
     }
 
-    List<ResponseCoinDto> responseCoinDtos = createResponseCoinDtos(coinList, currency);
+    List<ResponseCoinDto> responseCoinDtos = createResponseCoinDtos(coinList, currency.getCurrency());
 
     cacheCoinDataIntoDb(responseCoinDtos, currency);
 
@@ -182,9 +182,8 @@ public class CoinServiceImpl implements CoinService {
   }
 
   @Transactional
-  void cacheCoinDataIntoDb(List<ResponseCoinDto> responseCoinDtos, String currency) {
+  void cacheCoinDataIntoDb(List<ResponseCoinDto> responseCoinDtos, VsCurrency vsCurrency) {
 
-    VsCurrency vsCurrency = vsCurrencyRepository.getReferenceById(currency);
     List<Coin> coinListToDb = new ArrayList<>();
     for (ResponseCoinDto coinDto : responseCoinDtos) {
       if (!coinDto.isDataFresh()) {
