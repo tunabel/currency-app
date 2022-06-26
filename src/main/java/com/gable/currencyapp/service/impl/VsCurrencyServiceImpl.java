@@ -1,11 +1,11 @@
 package com.gable.currencyapp.service.impl;
 
+import com.gable.currencyapp.exception.ServerInternalErrorException;
 import com.gable.currencyapp.model.VsCurrency;
 import com.gable.currencyapp.repository.VsCurrencyRepository;
 import com.gable.currencyapp.service.VsCurrencyService;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -20,8 +20,7 @@ public class VsCurrencyServiceImpl implements VsCurrencyService {
   private final VsCurrencyRepository vsCurrencyRepository;
   private final GeckoWebClient webClient;
 
-  @Value("${currency-app.coin-gecko.path.currency-list}")
-  private String currencyListPath;
+  private final CrawlService crawlService;
 
   @Value("${currency-app.crawl.prioritized-currency}")
   private List<String> defaultPrioritizedCurrency;
@@ -29,12 +28,13 @@ public class VsCurrencyServiceImpl implements VsCurrencyService {
   @Override
   public void retrieveCurrencies() {
     List<String> currencyStringList = webClient.queryCurrencyList();
+    List<VsCurrency> dbCurrencies = vsCurrencyRepository.findAll();
 
-    if (currencyStringList.isEmpty()) {
-      return;
+    if (currencyStringList.isEmpty() && dbCurrencies.isEmpty()) {
+      throw new ServerInternalErrorException(
+          "CoinGecko server is down. Please try restarting the server later");
     }
 
-    List<VsCurrency> dbCurrencies = vsCurrencyRepository.findAll();
     if (!dbCurrencies.isEmpty() && dbCurrencies.size() == currencyStringList.size()) {
       log.info("Currencies already populated");
       return;
@@ -62,19 +62,21 @@ public class VsCurrencyServiceImpl implements VsCurrencyService {
   public VsCurrency updateVsCurrencyPriority(String currency) {
     VsCurrency updatedCurrency = vsCurrencyRepository.getReferenceById(currency);
 
-    if (Objects.equals(updatedCurrency.getCrawlPriority(), 0)) {
+    if (updatedCurrency.getCrawlPriority() != null && updatedCurrency.getCrawlPriority() == 0) {
       return updatedCurrency;
     }
 
     List<VsCurrency> vsCurrencyList = vsCurrencyRepository.findAllWithPriority();
-
-    vsCurrencyList.removeIf(vsCur -> vsCurrencyList.contains(updatedCurrency));
+    vsCurrencyList.remove(updatedCurrency);
     vsCurrencyList.add(0, updatedCurrency);
 
     for (VsCurrency vsCurrency : vsCurrencyList) {
       vsCurrency.setCrawlPriority((byte) (vsCurrencyList.indexOf(vsCurrency)));
     }
     vsCurrencyRepository.saveAll(vsCurrencyList);
+
+    crawlService.rescheduleCrawlingJob(currency);
+
     return updatedCurrency;
   }
 }

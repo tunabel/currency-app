@@ -10,7 +10,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface VsCurrencyRepository extends JpaRepository<VsCurrency, String> {
 
-  @Query("select c from VsCurrency c order by c.crawlPriority desc")
+  @Query("select c from VsCurrency c order by c.crawlPriority asc")
   List<VsCurrency> findAllOrderByPriority();
 
   Optional<VsCurrency> findByCrawlPriority(byte priority);

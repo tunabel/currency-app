@@ -26,7 +26,7 @@ public class VsCurrency {
   @OneToMany(mappedBy = "currency")
   Set<Price> prices;
 
-  @Column(name = "crawl_priority", unique = true)
+  @Column(name = "crawl_priority")
   private Byte crawlPriority;
 
 }

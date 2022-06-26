@@ -152,6 +152,7 @@ public class CoinServiceImpl implements CoinService {
   void cacheCoinDataIntoDb(List<ResponseCoinDto> responseCoinDtos, VsCurrency vsCurrency) {
 
     List<Coin> coinListToDb = new ArrayList<>();
+    List<Price> priceListToDb = new ArrayList<>();
     for (ResponseCoinDto coinDto : responseCoinDtos) {
       if (!coinDto.isDataFresh()) {
         continue;
@@ -166,10 +167,11 @@ public class CoinServiceImpl implements CoinService {
       price.setCoin(newCoin);
       price.setCurrency(vsCurrency);
       price.setCurrentPrice(coinDto.getCurrentPrice());
-      priceRepository.save(price);
+      priceListToDb.add(price);
 
       coinListToDb.add(newCoin);
     }
+    priceRepository.saveAll(priceListToDb);
     coinRepository.saveAll(coinListToDb);
     log.info("Saved {} coins into db", coinListToDb.size());
   }

@@ -12,6 +12,7 @@ import lombok.Setter;
 @Setter
 public class ResponseCoinDto {
 
+  private static final String UPDATING_DATA = "Updating data...";
   @JsonIgnore
   private String id;
 
@@ -35,8 +36,8 @@ public class ResponseCoinDto {
   @JsonSerialize(using = TwoDecimalSerializer.class)
   private BigDecimal currentPrice;
 
-  private String description;
+  private String description = UPDATING_DATA;
 
   @JsonProperty("trade_url")
-  private String tradeUrl;
+  private String tradeUrl = UPDATING_DATA;
 }

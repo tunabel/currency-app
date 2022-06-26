@@ -30,7 +30,7 @@ public class Price {
   @JoinColumn(name = "currency")
   private VsCurrency currency;
 
-  @Column(name = "current_price")
+  @Column(name = "current_price", scale = 20)
   private BigDecimal currentPrice;
 
 

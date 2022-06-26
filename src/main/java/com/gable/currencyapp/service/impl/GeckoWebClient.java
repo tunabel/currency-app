@@ -19,9 +19,9 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class GeckoWebClient {
 
-  public static final String VS_CURRENCY = "vs_currency";
-  public static final String PAGE = "page";
-  public static final String PER_PAGE = "per_page";
+  private static final String VS_CURRENCY = "vs_currency";
+  private static final String PAGE = "page";
+  private static final String PER_PAGE = "per_page";
   private final WebClient webClient;
 
   @Value("${currency-app.coin-gecko.path.simple-coin-list}")
