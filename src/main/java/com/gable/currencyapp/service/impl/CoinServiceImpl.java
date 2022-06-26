@@ -25,8 +25,6 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 @Service
 @Log4j2
@@ -35,17 +33,10 @@ public class CoinServiceImpl implements CoinService {
 
   private final CoinRepository coinRepository;
   private final PriceRepository priceRepository;
+
   private final VsCurrencyRepository vsCurrencyRepository;
-  private final WebClient webClient;
 
-  @Value("${currency-app.coin-gecko.path.simple-coin-list}")
-  private String simpleCoinListPath;
-
-  @Value("${currency-app.coin-gecko.path.coin-list}")
-  private String coinListPath;
-
-  @Value("${currency-app.coin-gecko.path.coin-details}")
-  private String coinDetailsPath;
+  private final GeckoWebClient webClient;
 
   @Value("${currency-app.last-updated-period}")
   private double lastUpdatedPeriod;
@@ -58,18 +49,7 @@ public class CoinServiceImpl implements CoinService {
     }
 
     log.info("Querying into coin-gecko to get simple coin list");
-    SimpleCoinDto[] coinArray = webClient.get()
-        .uri(simpleCoinListPath)
-        .exchangeToMono(response -> {
-              if (response.statusCode().is2xxSuccessful()) {
-                return response.bodyToMono(SimpleCoinDto[].class);
-              } else {
-                log.error("Unable to get simple coin list. Possibly limit reached");
-                return Mono.empty();
-              }
-            }
-        )
-        .block();
+    SimpleCoinDto[] coinArray = webClient.querySimpleCoinList();
 
     if (coinArray == null) {
       return;
@@ -93,9 +73,8 @@ public class CoinServiceImpl implements CoinService {
 
   @Override
   public List<ResponseCoinDto> getCoinResponseDtosByCurrency(VsCurrency currency, int page, int perPage) {
-
-    log.info("Get list of coins by currency {}", currency);
-    CoinByCurrencyDto[] coinList = queryCoinListByCurrencies(currency.getCurrency(), page, perPage);
+    log.info("Get list of coins by currency {}", currency.getCurrency());
+    CoinByCurrencyDto[] coinList = webClient.queryCoinListByCurrencies(currency.getCurrency(), page, perPage);
 
     if (coinList == null) {
       log.info("Unable to get coin list by currency {}", currency);
@@ -152,19 +131,7 @@ public class CoinServiceImpl implements CoinService {
 
   private ResponseCoinDto createResponseCoinDtoFromServer(CoinByCurrencyDto coinItem) {
     log.info("Query data of coin {}", coinItem.getId());
-    CoinDetailsDto coinDetailsDto = webClient.get()
-        .uri(coinDetailsPath + coinItem.getId())
-        .exchangeToMono(response -> {
-              if (response.statusCode().is2xxSuccessful()) {
-                return response.bodyToMono(CoinDetailsDto.class);
-              } else {
-                log.error("Unable to get data for coin id {}. Possibly limit reached",
-                    coinItem.getId());
-                return Mono.empty();
-              }
-            }
-        )
-        .block();
+    CoinDetailsDto coinDetailsDto = webClient.queryCoinDetails(coinItem.getId());
 
     ResponseCoinDto responseCoinDto = new ResponseCoinDto();
     BeanUtils.copyProperties(coinItem, responseCoinDto);
@@ -205,26 +172,5 @@ public class CoinServiceImpl implements CoinService {
     }
     coinRepository.saveAll(coinListToDb);
     log.info("Saved {} coins into db", coinListToDb.size());
-  }
-
-  private CoinByCurrencyDto[] queryCoinListByCurrencies(String currency, int page,
-      int perPage) {
-    return webClient.get()
-        .uri(uriBuilder -> uriBuilder.path(coinListPath)
-            .queryParam("vs_currency", currency)
-            .queryParam("page", page)
-            .queryParam("per_page", perPage)
-            .build()
-        )
-        .exchangeToMono(response -> {
-              if (response.statusCode().is2xxSuccessful()) {
-                return response.bodyToMono(CoinByCurrencyDto[].class);
-              } else {
-                log.error("Unable to get data for currency {}. Possibly limit reached", currency);
-                return Mono.empty();
-              }
-            }
-        )
-        .block();
   }
 }
